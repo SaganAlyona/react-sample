@@ -1,12 +1,9 @@
 import React, { Component } from 'react';
 import { Link, Route } from 'react-router-dom';
-import { find, reject, findIndex } from 'lodash';
-
+import { find, findIndex} from 'lodash';
 import './App.css';
 import { ListItem, HomeworkDetails } from '..';
-
-const BACKEND_SERVER = 'https://promise-server.herokuapp.com';
-// const BACKEND_SERVER = 'http://localhost:5000';
+import {HomeworkService} from '..';
 
 export class App extends Component {
   state = {
@@ -14,44 +11,33 @@ export class App extends Component {
   }
 
   async componentDidMount() {
-    const homeworks = await (await fetch(`${BACKEND_SERVER}/api/homeworks`)).json();
+    this.homeworkService = new HomeworkService();
+    const homeworks = await this.homeworkService.fetchList();
     this.setState({ homeworks });
   }
 
   handleAction = async (action) => {
     switch(action.type) {
-
       case 'delete':
-        try {
-          const req = await fetch(`${BACKEND_SERVER}/api/homeworks/${action.value.id}`, {
-            method: 'DELETE'
-          });
-          await req.json();
-          this.setState({ homeworks: reject(this.state.homeworks, { id: action.value.id }) });
-        } catch (ignore) { }
+        const removeId = await this.homeworkService.deleteOne(action.value.id);
+        this.setState({ homeworks: removeId });
         break;
-
       case 'update':
         try {
-          const req = await fetch(`${BACKEND_SERVER}/api/homeworks/${action.value.id}`, {
-            method: 'PUT',
-            body: JSON.stringify(action.value)
-          });
-          const result = await req.json();
+        const homeworks = await this.homeworkService.updateOne(action.value);
+        const result = await homeworks.json();
           const index = findIndex(this.state.homeworks, { id: result.id });
           if (index > -1) {
             const newHomeworks = [...this.state.homeworks];
             newHomeworks[index] = result;
             this.setState({ homeworks: newHomeworks });
           }
-        } catch (ignore) { }
+            } catch (ignore) { }
         break;
-
       default:
         console.log('App click', action);
     }
   }
-
 
   render() {
     return (
